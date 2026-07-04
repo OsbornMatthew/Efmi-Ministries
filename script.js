@@ -63,29 +63,47 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  /* ---------- Prayer form — Netlify AJAX ---------- */
+  /* ---------- Prayer form — EmailJS (sends straight from the browser) ---------- */
+  // TODO: fill these in with the values from your EmailJS dashboard
+  var EMAILJS_PUBLIC_KEY  = '00xuBxZEwS6BZ_DW0';
+  var EMAILJS_SERVICE_ID  = 'service_rbugpfo';
+  var EMAILJS_TEMPLATE_ID = 'template_ju9cte5';
+
+  if (window.emailjs) {
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+  }
+
   const prayerForm = document.getElementById('prayer-form');
   if (prayerForm) {
     prayerForm.addEventListener('submit', function (e) {
       e.preventDefault();
-      const formData = new FormData(prayerForm);
-      fetch('/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams(formData).toString()
-      })
-      .then(function () {
-        const card = prayerForm.closest('.prayer-form-card');
-        card.innerHTML =
-          '<div class="form-success">' +
-            '<h3>Your prayer request has been received.</h3>' +
-            '<p>Thank you for trusting us with this. Our team will carry it before the Lord in prayer.<br><em>"The prayer of a righteous person is powerful and effective." — James 5:16</em></p>' +
-          '</div>';
-      })
-      .catch(function (err) {
-        alert('Something went wrong. Please try again or email us at efmi.ministries@gmail.com');
-        console.error(err);
-      });
+
+      // simple honeypot check (spam bots fill hidden fields)
+      const honeypot = prayerForm.querySelector('[name="bot-field"]');
+      if (honeypot && honeypot.value) {
+        return;
+      }
+
+      const submitBtn = prayerForm.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending...';
+
+      emailjs.sendForm(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, prayerForm)
+        .then(function () {
+          const card = prayerForm.closest('.prayer-form-card');
+          card.innerHTML =
+            '<div class="form-success">' +
+              '<h3>Your prayer request has been received.</h3>' +
+              '<p>Thank you for trusting us with this. Our team will carry it before the Lord in prayer.<br><em>"The prayer of a righteous person is powerful and effective." — James 5:16</em></p>' +
+            '</div>';
+        })
+        .catch(function (err) {
+          alert('Something went wrong. Please try again or email us at efmi.ministries@gmail.com');
+          console.error(err);
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalBtnText;
+        });
     });
   }
 
